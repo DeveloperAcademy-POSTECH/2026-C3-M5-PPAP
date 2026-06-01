@@ -12,7 +12,7 @@ struct IntroView: View {
     var body: some View {
         VStack(spacing: 20) {
             Text("이집트 투탕카멘 유물 도굴").font(.largeTitle).bold()
-            Text("인트로 스토리 (자리표시) — 미연시 컷 들어갈 곳")
+            Text("인트로 스토리 (자리표시) - 스토리 컷신 들어갈 곳")
                 .foregroundStyle(.secondary)
             Button("시작하기", action: onContinue)
                 .buttonStyle(.borderedProminent)
