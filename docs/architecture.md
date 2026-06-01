@@ -38,7 +38,7 @@ C3_Korikamen/
 │   ├── Stage1_Rock/   (맥스)
 │   ├── Stage2_Lock/   (실라)
 │   └── Stage3_Spider/ (노튼)
-├── Story/                        # 인트로/엔딩 미연시 컷
+├── Story/                        # 인트로/엔딩 컷
 └── Resources/                    # 에셋 (Stage1/2/3 하위 폴더로)
 ```
 
