@@ -1,0 +1,96 @@
+//
+//  MockPencilFeeder.swift
+//  C3_Korikamen
+//
+//  Created by Park on 6/2/26.
+//
+//  개발용 — 슬라이더로 PencilInput.state를 채워 시뮬레이터에서 펜슬 입력을 흉내낸다.
+//  (RealPencilFeeder가 실기기에서 하는 일을 손으로 하는 가짜 버전. DEBUG 전용.)
+//
+
+#if DEBUG
+import SwiftUI
+
+struct MockPencilFeeder: View {
+    @EnvironmentObject private var pencil: PencilInput
+    @State private var expanded = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if expanded { panel }
+            Button { expanded.toggle() } label: {
+                Label(expanded ? "닫기" : "Mock",
+                      systemImage: expanded ? "xmark" : "slider.horizontal.3")
+                    .font(.caption)
+                    .padding(.horizontal, 12).padding(.vertical, 8)
+                    .background(.ultraThinMaterial, in: Capsule())
+            }
+        }
+        .padding()
+    }
+
+    private var panel: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Mock Pencil (개발용)").font(.caption).bold()
+            touchPad
+            slider("tilt",  $pencil.state.tiltDegrees, 0...90, "°")
+            slider("roll",  $pencil.state.barrelRollDegrees, 0...360, "°")
+            slider("press", $pencil.state.pressure, 0...1, "")
+            Toggle("hover", isOn: $pencil.state.isHovering).font(.caption2)
+            squeezeButton
+        }
+        .padding(10)
+        .frame(width: 220)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
+    }
+
+    /// 드래그 → location/isTouching 설정 + roll(막대 방향)·pressure(점 크기) 시각화
+    private var touchPad: some View {
+        GeometryReader { _ in
+            ZStack {
+                RoundedRectangle(cornerRadius: 8).fill(Color.gray.opacity(0.15))
+                Text("여기를 드래그 → 위치/접촉")
+                    .font(.caption2).foregroundStyle(.secondary).allowsHitTesting(false)
+                if pencil.state.isTouching, let loc = pencil.state.location {
+                    ZStack {
+                        Circle().fill(.orange.opacity(0.5))
+                            .frame(width: 14 + pencil.state.pressure * 26)
+                        Rectangle().fill(.orange).frame(width: 2, height: 22)
+                            .rotationEffect(.degrees(pencil.state.barrelRollDegrees))
+                    }
+                    .position(loc)
+                }
+            }
+            .contentShape(Rectangle())
+            .gesture(DragGesture(minimumDistance: 0)
+                .onChanged { v in
+                    pencil.state.location = v.location
+                    pencil.state.isTouching = true
+                }
+                .onEnded { _ in pencil.state.isTouching = false })
+        }
+        .frame(height: 120)
+    }
+
+    private var squeezeButton: some View {
+        Text(pencil.state.isSqueezing ? "스퀴즈 중…" : "스퀴즈 (누르고 있기)")
+            .font(.caption2).frame(maxWidth: .infinity).padding(6)
+            .background(pencil.state.isSqueezing ? Color.orange : Color.gray.opacity(0.25),
+                        in: RoundedRectangle(cornerRadius: 8))
+            .gesture(DragGesture(minimumDistance: 0)
+                .onChanged { _ in pencil.state.squeezePhase = .began }
+                .onEnded   { _ in pencil.state.squeezePhase = .ended })
+    }
+
+    private func slider(_ name: String, _ value: Binding<Double>,
+                        _ range: ClosedRange<Double>, _ unit: String) -> some View {
+        let txt = unit.isEmpty ? String(format: "%.2f", value.wrappedValue)
+                               : String(format: "%.0f", value.wrappedValue) + unit
+        return HStack {
+            Text(name).font(.caption2).frame(width: 42, alignment: .leading)
+            Slider(value: value, in: range)
+            Text(txt).font(.caption2).frame(width: 42, alignment: .trailing)
+        }
+    }
+}
+#endif
