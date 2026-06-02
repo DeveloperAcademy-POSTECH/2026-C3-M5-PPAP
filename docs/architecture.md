@@ -97,22 +97,60 @@ final class GameManager: ObservableObject {
 3. 스테이지 뷰는 `init(onClear:onFail:)` 계약으로 통일 → `docs/contracts`.
 4. (참고) 3스테이지 선형이라 `GKStateMachine`은 다소 무겁지만, GameplayKit 학습 + 전환 규칙 명시화 이점이 있어 채택.
 
-## 6. 의존 구조 — 펜슬 입력 계약으로의 수렴 (팬인)
+## 6. 모듈 의존 구조 — 팬인 · 팬아웃
 
-작업은 병렬로 갈라지지만(→ `team-workflow.md`의 팬아웃), **구조적으로는 세 스테이지가 모두 `PencilState` 계약 하나에 의존**한다. 이 단일 수렴점이 진짜 FAN-IN이며, `Mock → Real` 교체는 3스테이지의 *공통 의존*이라 한 번에 셋 모두에 영향을 준다. 그래서 **계약을 정밀하게 유지하는 게 통합 위험을 막는 핵심**이다. (계약 상세: `contracts/pencil-input.md`)
+화살표는 **"A가 B를 의존/사용한다"** 방향. (모듈 단위로 유지하고, 구조가 바뀔 때만 갱신)
 
 ```mermaid
 flowchart TD
-    S1["Stage1 · 맥스"] --> PS
-    S2["Stage2 · 실라"] --> PS
-    S3["Stage3 · 노튼"] --> PS
-    PS["PencilState 계약<br/>(3스테이지가 의존하는 단일 수렴점 = FAN-IN)"]
-    PS --> FEED["Feeder (교체 가능)<br/>MockPencilFeeder → RealPencilFeeder"]
+    App["App 진입점<br/>C3_KoriKamenApp"]
+    CV["ContentView<br/>(라우터·조립)"]
+    GM["GameManager<br/>(진행 두뇌)"]
 
+    App --> CV
+    App --> GM
+    App --> PI
+
+    %% ── ContentView가 모든 화면을 조립 → FAN-OUT ──
+    CV --> MV["MainView"]
+    CV --> S1["Stage1View"]
+    CV --> S2["Stage2View"]
+    CV --> S3["Stage3View"]
+    CV --> EV["EndingView"]
+    CV --> FV["FailView"]
+    CV -. DEBUG .-> MF["MockPencilFeeder"]
+    CV --> GM
+
+    %% ── 입력 계약으로 수렴 → FAN-IN ──
+    S1 --> PI["PencilInput<br/>(공유 박스)"]
+    S2 --> PI
+    S3 --> PI
+    MF --> PI
+    RF["RealPencilFeeder<br/>(예정)"] -. 통합 시 .-> PI
+    PI --> PS["PencilState<br/>(입력 계약)"]
+
+    %% ── 공용 타이머로 수렴 ──
+    S1 --> CT["CountdownTimer"]
+    S2 --> CT
+    S3 --> CT
+
+    classDef root fill:#e0e7ff,stroke:#4f46e5,color:#1e3a8a,stroke-width:2px
+    classDef hub fill:#fde68a,stroke:#ca8a04,color:#713f12,stroke-width:2px
+    classDef brain fill:#eef2ff,stroke:#446,color:#224
+    classDef view fill:#f3f4f6,stroke:#9ca3af,color:#111827
     classDef stage fill:#fff6e0,stroke:#ca0,color:#840
-    classDef hub fill:#e0e7ff,stroke:#4f46e5,color:#1e3a8a,stroke-width:2px
-    classDef feeder fill:#eef2ff,stroke:#446,color:#224
+
+    class App,CV root
+    class PI,PS,CT hub
+    class GM brain
+    class MV,EV,FV,MF,RF view
     class S1,S2,S3 stage
-    class PS hub
-    class FEED feeder
 ```
+
+### 읽는 법
+- 🟨 **FAN-IN 허브 = `PencilInput`(→ `PencilState`)**: 스테이지 3개 + Mock/(예정)Real이 모두 수렴하는 **공유 의존**. 변경 시 전원에 파급 → **팀 합의 필요**. (계약 상세: `contracts/pencil-input.md`)
+- 🟪 **FAN-OUT 허브 = `ContentView`**: 모든 화면을 조립하고 두뇌(`GameManager`)에 연결하는 **유일한 조립 지점**. 얇게(배선만) 유지한다.
+- ✅ **건강 신호**: 스테이지끼리, 그리고 스테이지 → `GameManager` 직접 의존이 **없다** (클로저 `onClear`/`onFail`로만 연결). → 서로·두뇌로부터 독립 = 병렬 개발에 이상적.
+- ⚠️ **적신호 감시**: 위 그림에 **없던 화살표**(예: `Stage2View`가 `Stage1View`를 import)가 생기면 결합도 문제 신호.
+
+> 유지 원칙: **모듈 단위로만** 그린다(파일 단위 X). 구조가 바뀌는 PR에서만 함께 갱신한다(docs-as-code).
