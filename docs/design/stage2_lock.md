@@ -119,7 +119,6 @@ flowchart TB
   L --> M[스토리 뷰 보여주기]
   M --> N[다음 스테이지 이동]
 
-
   C -->|아니오| R[유지시간 게이지 0으로 초기화]
   D -->|아니오| R
   H -->|아니오| R
@@ -127,19 +126,13 @@ flowchart TB
   P --> R
   R --> B
 
-  B -->|시간제한 초과| F[실패 : 시간 초과]
-  K -->|시간제한 초과| F
-  F --> G[실패화면 으로 이동]
+  B -->|예: 시간제한 초과| F[실패 : 시간 초과]
+  K -->|예: 시간 초과| F
+  F --> G[실패화면으로 이동]
 
-
-  B --- R
-  B --- F
-
-
-  linkStyle 0,1,2,3,4,5,6,7,8,9 stroke:#22c55e,stroke-width:2px
-  linkStyle 10,11 stroke:#ef4444,stroke-width:2px
-  linkStyle 12,13,14,15,16,17 stroke:#6b7280,stroke-width:2px,stroke-dasharray:6 4
-  linkStyle 18,19,20 stroke:transparent
+  linkStyle 0,1,2,3,4,5,6,7,8,9,10 stroke:#22c55e,stroke-width:2px
+  linkStyle 11,12,13,14,15,16 stroke:#6b7280,stroke-width:2px,stroke-dasharray:6 4
+  linkStyle 17,18,19 stroke:#ef4444,stroke-width:2px
 
   classDef main fill:#eaffea,stroke:#22c55e,color:#14532d,stroke-width:2px
   classDef decision fill:#ffffff,stroke:#22c55e,color:#14532d,stroke-width:2px
