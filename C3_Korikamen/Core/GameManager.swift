@@ -11,19 +11,17 @@
 import GameplayKit
 import Combine
 
-// MARK: - 게임 단계
 enum GamePhase: Equatable {
     case intro
     case stage(Int)   // 1, 2, 3
     case ending
 }
 
-// MARK: - GameManager
 final class GameManager: ObservableObject {
-    /// SwiftUI 표시용. 각 상태가 진입할 때 갱신된다.
     @Published private(set) var phase: GamePhase = .intro
+    /// nil이 아니면 해당 스테이지 실패 화면 표시 (재시도 대상)
+    @Published private(set) var failedStage: Int? = nil
 
-    /// [스테이지 번호: 경과시간(초)] — 각 스테이지가 끝날 때 기록
     private(set) var stageTimes: [Int: Double] = [:]
     var totalPlayTime: Double { stageTimes.values.reduce(0, +) }
 
@@ -34,48 +32,51 @@ final class GameManager: ObservableObject {
 
     init() { machine.enter(IntroState.self) }
 
-    /// 스테이지 종료 시 호출 (경과시간 기록)
     func recordTime(stage: Int, elapsed: Double) { stageTimes[stage] = elapsed }
 
-    /// 현재 단계 → 다음 단계. 각 화면이 완료/클리어 시 호출.
+    /// 성공 → 다음 단계
     func advance() {
         switch phase {
         case .intro:    machine.enter(Stage1State.self)
         case .stage(1): machine.enter(Stage2State.self)
         case .stage(2): machine.enter(Stage3State.self)
         case .stage(3): machine.enter(EndingState.self)
-        case .ending:   machine.enter(IntroState.self)   // 엔딩 → 처음으로(리플레이)
-        case .stage:    break                            // 1~3 외(이론상 없음)
+        case .ending:   machine.enter(IntroState.self)
+        case .stage:    break
         }
     }
 
-    /// 상태 진입 시 phase 거울 갱신. (상태 클래스 전용)
+    /// 현재 스테이지 실패 → 실패 화면
+    func fail() { if case .stage(let n) = phase { failedStage = n } }
+
+    /// 실패 화면에서 재시도 → 같은 스테이지 처음부터 (뷰가 새로 마운트되며 리셋)
+    func retry() { failedStage = nil }
+
     fileprivate func updatePhase(_ newPhase: GamePhase) { phase = newPhase }
 }
 
-// MARK: - 상태(GKState): 진입 시 phase 갱신 + 다음 상태 규칙 명시
+// MARK: - 상태(GKState) — Step 3과 동일
 class GameBaseState: GKState {
     weak var manager: GameManager?
     init(_ manager: GameManager) { self.manager = manager; super.init() }
 }
-
 final class IntroState: GameBaseState {
-    override func didEnter(from previous: GKState?) { manager?.updatePhase(.intro) }
+    override func didEnter(from p: GKState?) { manager?.updatePhase(.intro) }
     override func isValidNextState(_ s: AnyClass) -> Bool { s == Stage1State.self }
 }
 final class Stage1State: GameBaseState {
-    override func didEnter(from previous: GKState?) { manager?.updatePhase(.stage(1)) }
+    override func didEnter(from p: GKState?) { manager?.updatePhase(.stage(1)) }
     override func isValidNextState(_ s: AnyClass) -> Bool { s == Stage2State.self }
 }
 final class Stage2State: GameBaseState {
-    override func didEnter(from previous: GKState?) { manager?.updatePhase(.stage(2)) }
+    override func didEnter(from p: GKState?) { manager?.updatePhase(.stage(2)) }
     override func isValidNextState(_ s: AnyClass) -> Bool { s == Stage3State.self }
 }
 final class Stage3State: GameBaseState {
-    override func didEnter(from previous: GKState?) { manager?.updatePhase(.stage(3)) }
+    override func didEnter(from p: GKState?) { manager?.updatePhase(.stage(3)) }
     override func isValidNextState(_ s: AnyClass) -> Bool { s == EndingState.self }
 }
 final class EndingState: GameBaseState {
-    override func didEnter(from previous: GKState?) { manager?.updatePhase(.ending) }
+    override func didEnter(from p: GKState?) { manager?.updatePhase(.ending) }
     override func isValidNextState(_ s: AnyClass) -> Bool { s == IntroState.self }
 }
