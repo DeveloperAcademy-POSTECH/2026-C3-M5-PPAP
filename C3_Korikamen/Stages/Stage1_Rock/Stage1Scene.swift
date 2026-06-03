@@ -38,14 +38,16 @@ final class Stage1Scene: SKScene {
         CGPoint(x: 497.0, y: -40.7), // rock_11
     ]
 
-    /// 무더기 "전체"를 통째로 옮기는 손잡이. 이 값 하나만 바꾸면 12조각이 같이 이동.
-    static let clusterOffset = CGVector(dx: 0, dy: 67)
+    /// 무더기 "전체"의 화면상 중심 위치(조정모드로 맞춘 값을 여기 박는다).
+    static let pilePosition = CGPoint(x: 502.7, y: 420.0)
+    /// 무더기 "전체" 크기 배율(1.0 = 원본). 그룹 통째 스케일이라 조각 간 상대 간격은 유지된다.
+    static let pileScale: CGFloat = 1.0
 
     /// 돌무더기 "뒤"에 깔리는 관 이미지. Assets에 이 이름의 png를 넣으면 자동으로 깔린다.
     static let coffinName = "coffin"
-    /// 관 위치 미세 조정(돌무더기 중심 기준).
-    static let coffinOffset = CGVector(dx: 0, dy: 0)
-    /// 관 크기 조정(1.0 = 원본).
+    /// 관의 화면상 중심 위치.
+    static let coffinPosition = CGPoint(x: 502.7, y: 420.0)
+    /// 관 크기 배율(1.0 = 원본).
     static let coffinScale: CGFloat = 1.0
 
     /// 알파 판정 문턱(0~255). 이 값 이상이면 '실제 그림이 있는' 픽셀로 본다.
@@ -60,6 +62,12 @@ final class Stage1Scene: SKScene {
     }
     /// 디버그: 히트박스/터치점/선택조각을 화면에 그린다.
     var showHitboxes = false
+
+    // 실시간 조절용(조정모드 슬라이더가 씀). 바뀌면 즉시 재배치.
+    var pilePosition = Stage1Scene.pilePosition   { didSet { layoutPile() } }
+    var pileScale    = Stage1Scene.pileScale      { didSet { layoutPile() } }
+    var coffinPosition = Stage1Scene.coffinPosition { didSet { layoutCoffin() } }
+    var coffinScale    = Stage1Scene.coffinScale    { didSet { layoutCoffin() } }
 
     // MARK: - 내부 상태
 
@@ -108,21 +116,37 @@ final class Stage1Scene: SKScene {
         node.name = "coffin"
         node.anchorPoint = CGPoint(x: 0.5, y: 0.5)
         node.zPosition = -1
-        node.setScale(Self.coffinScale)
-        node.position = pileCenter(extra: Self.coffinOffset)
         addChild(node)
         coffinNode = node
         coffinMask = AlphaMask(img)
+        layoutCoffin()
     }
 
-    private func pileCenter(extra: CGVector = .zero) -> CGPoint {
+    /// bakedLayout의 평균(무더기 원래 중심). 그룹 스케일/이동의 기준점.
+    private var layoutCentroid: CGPoint {
         guard let layout = Self.bakedLayout, !layout.isEmpty else {
             return CGPoint(x: size.width / 2, y: size.height / 2)
         }
         let cx = layout.map { $0.x }.reduce(0, +) / CGFloat(layout.count)
         let cy = layout.map { $0.y }.reduce(0, +) / CGFloat(layout.count)
-        return CGPoint(x: cx + Self.clusterOffset.dx + extra.dx,
-                       y: cy + Self.clusterOffset.dy + extra.dy)
+        return CGPoint(x: cx, y: cy)
+    }
+
+    /// 조각들을 (원래 상대 배치 × pileScale) + pilePosition 으로 재배치. 상대 간격은 유지된다.
+    private func layoutPile() {
+        guard !pieces.isEmpty, let layout = Self.bakedLayout else { return }
+        let c = layoutCentroid
+        for i in pieces.indices where i < layout.count {
+            let rel = CGPoint(x: layout[i].x - c.x, y: layout[i].y - c.y)   // 중심 대비 상대 위치
+            pieces[i].setScale(pileScale)
+            pieces[i].position = CGPoint(x: pilePosition.x + rel.x * pileScale,
+                                         y: pilePosition.y + rel.y * pileScale)
+        }
+    }
+
+    private func layoutCoffin() {
+        coffinNode?.setScale(coffinScale)
+        coffinNode?.position = coffinPosition
     }
 
     // MARK: - 조각 생성
@@ -149,11 +173,11 @@ final class Stage1Scene: SKScene {
             node.name = name
             node.anchorPoint = CGPoint(x: 0.5, y: 0.5)
             node.zPosition = CGFloat(id)                 // id 클수록 위 → 터치 우선권
-            node.position = startPosition(id)
             addChild(node)
             pieces.append(node)
             attachCracks(to: node, id: id, mask: maskSprite)
         }
+        layoutPile()    // 위치·크기 일괄 적용
     }
 
     /// 돌 모양에 클리핑되는 균열 오버레이(밝은 선 + 어두운 선)를 조각 위에 얹는다.
@@ -199,20 +223,6 @@ final class Stage1Scene: SKScene {
         crackGlow[id]?.path = path
         crackDark[id]?.lineWidth = 1.5 + CGFloat(damage) * 2.0   // 손상 클수록 굵게
         crackGlow[id]?.lineWidth = 3.5 + CGFloat(damage) * 2.5
-    }
-
-    private func startPosition(_ id: Int) -> CGPoint {
-        if let layout = Self.bakedLayout, id < layout.count {
-            return CGPoint(x: layout[id].x + Self.clusterOffset.dx,
-                           y: layout[id].y + Self.clusterOffset.dy)
-        }
-        let cols = 4
-        let rows = (Self.pieceCount + cols - 1) / cols
-        let col = id % cols, row = id / cols
-        let cellW = size.width  / CGFloat(cols + 1)
-        let cellH = size.height / CGFloat(rows + 1)
-        return CGPoint(x: cellW * CGFloat(col + 1),
-                       y: size.height - cellH * CGFloat(row + 1))
     }
 
     // MARK: - 알파 기반 판정
@@ -415,6 +425,20 @@ final class Stage1Scene: SKScene {
         static let bakedLayout: [CGPoint]? = [
         \(lines)
         ]
+        // ▲▲▲
+
+        """)
+    }
+
+    /// 조정모드에서 맞춘 무더기/관 위치·배율을 Stage1Scene 상단 상수에 붙여넣을 형태로 출력.
+    func dumpTransform() {
+        print("""
+
+        // ▼▼▼ Stage1Scene 상단 상수에 붙여넣기 (조정모드 결과)
+        static let pilePosition = CGPoint(x: \(String(format: "%.1f", pilePosition.x)), y: \(String(format: "%.1f", pilePosition.y)))
+        static let pileScale: CGFloat = \(String(format: "%.3f", pileScale))
+        static let coffinPosition = CGPoint(x: \(String(format: "%.1f", coffinPosition.x)), y: \(String(format: "%.1f", coffinPosition.y)))
+        static let coffinScale: CGFloat = \(String(format: "%.3f", coffinScale))
         // ▲▲▲
 
         """)
