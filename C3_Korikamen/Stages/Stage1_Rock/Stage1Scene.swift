@@ -593,6 +593,7 @@ final class Stage1Scene: SKScene {
             .group([.fadeAlpha(to: 0, duration: 0.18), .scale(to: 0.7, duration: 0.18)]),
             .removeFromParent()
         ]))
+        if showTouchMap { buildTouchMap() }   // 깨진 조각의 초록 제거 → 아래 영역이 드러나게 갱신
     }
 
     /// 실패 연출: 화면 붉게 번쩍.
