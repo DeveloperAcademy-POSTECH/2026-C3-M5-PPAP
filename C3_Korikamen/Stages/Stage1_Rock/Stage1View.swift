@@ -19,6 +19,15 @@ struct Stage1View: View {
     @State private var editMode = false
     @State private var showHitboxes = false
 
+    // 조정모드(돌무더기/관 위치·크기 실시간 조절)
+    @State private var adjustMode = false
+    @State private var pileX = Double(Stage1Scene.pilePosition.x)
+    @State private var pileY = Double(Stage1Scene.pilePosition.y)
+    @State private var pileScale = Double(Stage1Scene.pileScale)
+    @State private var coffinX = Double(Stage1Scene.coffinPosition.x)
+    @State private var coffinY = Double(Stage1Scene.coffinPosition.y)
+    @State private var coffinScale = Double(Stage1Scene.coffinScale)
+
     var body: some View {
         ZStack {
             SpriteView(scene: scene)
@@ -40,6 +49,7 @@ struct Stage1View: View {
 
             #if DEBUG
             debugBar
+            if adjustMode { adjustPanel }
             #endif
         }
         .onAppear {
@@ -77,9 +87,9 @@ struct Stage1View: View {
         VStack {
             Spacer()
             HStack {
+                Toggle("조정모드", isOn: $adjustMode).fixedSize()
                 Toggle("배치모드", isOn: $editMode).fixedSize()
                 Toggle("히트박스", isOn: $showHitboxes).fixedSize()
-                Button("좌표 출력") { scene.dumpPositions() }
                 Spacer()
                 Button("클리어 →", action: onClear)
                 Button("실패", role: .destructive, action: onFail)
@@ -88,6 +98,49 @@ struct Stage1View: View {
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
         }
         .padding()
+    }
+
+    /// 돌무더기/관의 위치·크기를 실시간으로 조절하는 패널.
+    private var adjustPanel: some View {
+        VStack {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("조정모드 — 실시간 미리보기").font(.caption).bold()
+                adjustRow("무더기 X", $pileX, 0...1024)
+                adjustRow("무더기 Y", $pileY, -150...900)
+                adjustRow("무더기 크기", $pileScale, 0.2...1.5)
+                Divider()
+                adjustRow("관 X", $coffinX, 0...1024)
+                adjustRow("관 Y", $coffinY, -150...900)
+                adjustRow("관 크기", $coffinScale, 0.2...2.0)
+                Button("값 출력 → 콘솔") { scene.dumpTransform() }
+                    .buttonStyle(.borderedProminent)
+                    .frame(maxWidth: .infinity)
+            }
+            .padding(12)
+            .frame(width: 320)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
+            Spacer()
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .trailing)
+    }
+
+    private func adjustRow(_ name: String, _ value: Binding<Double>, _ range: ClosedRange<Double>) -> some View {
+        HStack {
+            Text(name).font(.caption2).frame(width: 70, alignment: .leading)
+            Slider(value: value, in: range) { _ in applyTransform() }
+                .onChange(of: value.wrappedValue) { _, _ in applyTransform() }
+            Text(String(format: "%.2f", value.wrappedValue))
+                .font(.caption2).monospacedDigit().frame(width: 52, alignment: .trailing)
+        }
+    }
+
+    /// 슬라이더 값을 씬에 즉시 반영.
+    private func applyTransform() {
+        scene.pilePosition = CGPoint(x: pileX, y: pileY)
+        scene.pileScale = CGFloat(pileScale)
+        scene.coffinPosition = CGPoint(x: coffinX, y: coffinY)
+        scene.coffinScale = CGFloat(coffinScale)
     }
     #endif
 }
