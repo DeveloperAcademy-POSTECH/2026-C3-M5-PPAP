@@ -5,11 +5,12 @@
 //  Created by Park on 6/3/26.
 //  Stage1(관 돌 부수기) SpriteKit 씬.
 //
-//  지금은 "배치 모드"가 핵심:
-//   - 조각 12장(rock_00 ~ rock_11)을 화면에 흩뿌리고
-//   - 손/펜슬로 끌어서 자연스럽게 겹쳐 배치한 뒤
-//   - "좌표 출력"으로 위치를 콘솔에 찍는다 → bakedLayout에 박아 고정.
-//  좌표가 확정되면 같은 씬이 그대로 플레이 씬이 된다(터치 판정은 다음 단계).
+//  두 가지 모드:
+//   - 플레이 모드(기본): 조각을 터치/펜슬로 깬다. 드릴=꾹 연속, 끌=툭 단발.
+//     조각이 0이 되면 그 칸은 '관 노출' 상태가 되고, 거기 또 대면 실패.
+//   - 배치 모드(DEBUG 토글): 조각을 드래그해 위치를 잡고 dumpPositions로 좌표를 뽑는다.
+//
+//  입력 분담: 위치는 씬의 터치, 세기(pressure)는 PencilInput에서 주입(pressureProvider).
 //
 
 import SpriteKit
@@ -37,14 +38,29 @@ final class Stage1Scene: SKScene {
     ]
 
     /// 무더기 "전체"를 통째로 옮기는 손잡이. 이 값 하나만 바꾸면 12조각이 같이 이동.
-    /// (기본값은 무더기를 화면 세로 중앙쯤으로 끌어올린 것 — 보면서 마음대로 조절하세요.)
     static let clusterOffset = CGVector(dx: 0, dy: 67)
 
-    private var pieces: [SKSpriteNode] = []
+    // MARK: - 외부 연결(뷰에서 주입)
 
-    // 드래그 상태(배치 모드)
+    /// 판정 두뇌. 씬은 이 매니저에 깨기 요청을 보내고, hp를 읽어 그림을 갱신한다.
+    weak var manager: Stage1GameManager?
+    /// 펜슬/Mock에서 오는 세기(0~1). 드릴 속도에 쓰인다.
+    var pressureProvider: () -> Double = { 0 }
+    /// true면 배치 모드(드래그). false면 플레이 모드(깨기). 기본 플레이.
+    var editMode = false
+
+    // MARK: - 내부 상태
+
+    private var pieces: [SKSpriteNode] = []
+    private var clearedShown = Set<Int>()      // 관 노출 연출을 이미 보여준 조각
+    private var activePieceID: Int?            // 드릴로 누르고 있는 조각
+    private var lastUpdate: TimeInterval = 0
+
+    // 배치 모드 드래그
     private var dragging: SKSpriteNode?
     private var dragOffset: CGSize = .zero
+
+    private let coffinColor = SKColor(hue: 0.12, saturation: 0.7, brightness: 0.95, alpha: 1) // 금빛 관
 
     override init(size: CGSize) {
         super.init(size: size)
@@ -65,7 +81,7 @@ final class Stage1Scene: SKScene {
             let name = String(format: "rock_%02d", id)
             let node = makeNode(id: id, name: name)
             node.name = name
-            node.anchorPoint = CGPoint(x: 0.5, y: 0.5)   // position = 중심
+            node.anchorPoint = CGPoint(x: 0.5, y: 0.5)
             node.zPosition = CGFloat(id)                 // id 클수록 위 → 터치 우선권
             node.position = startPosition(id)
             addChild(node)
@@ -73,7 +89,6 @@ final class Stage1Scene: SKScene {
         }
     }
 
-    /// 에셋이 있으면 그 이미지, 아직 없으면 번호 적힌 색 사각형(배치 도구는 미리 테스트 가능).
     private func makeNode(id: Int, name: String) -> SKSpriteNode {
         if let img = UIImage(named: name) {
             return SKSpriteNode(texture: SKTexture(image: img))
@@ -89,11 +104,9 @@ final class Stage1Scene: SKScene {
 
     private func startPosition(_ id: Int) -> CGPoint {
         if let layout = Self.bakedLayout, id < layout.count {
-            // 상대 위치 + 무더기 전체 이동(clusterOffset)
             return CGPoint(x: layout[id].x + Self.clusterOffset.dx,
                            y: layout[id].y + Self.clusterOffset.dy)
         }
-        // 배치 모드: 4열 격자로 흩뿌려 전부 잡히게
         let cols = 4
         let rows = (Self.pieceCount + cols - 1) / cols
         let col = id % cols, row = id / cols
@@ -103,32 +116,114 @@ final class Stage1Scene: SKScene {
                        y: size.height - cellH * CGFloat(row + 1))
     }
 
-    // MARK: - 배치 모드 드래그
+    /// 터치 지점을 덮는 조각 중 맨 위(z 최고). (조각이 타이트하게 잘려 있어 사각형 판정으로 충분)
+    private func topPieceID(at p: CGPoint) -> Int? {
+        pieces.enumerated()
+            .filter { $0.element.frame.contains(p) }
+            .max { $0.element.zPosition < $1.element.zPosition }?
+            .offset
+    }
+
+    // MARK: - 입력
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let t = touches.first else { return }
         let p = t.location(in: self)
-        // 터치 지점을 포함하는 조각 중 맨 위(z 최고) 것을 집는다.
-        dragging = pieces
-            .filter { $0.frame.contains(p) }
-            .max { $0.zPosition < $1.zPosition }
-        if let d = dragging {
-            dragOffset = CGSize(width: p.x - d.position.x, height: p.y - d.position.y)
+
+        if editMode {
+            dragging = pieces.filter { $0.frame.contains(p) }.max { $0.zPosition < $1.zPosition }
+            if let d = dragging {
+                dragOffset = CGSize(width: p.x - d.position.x, height: p.y - d.position.y)
+            }
+            return
+        }
+
+        // 플레이 모드
+        guard let id = topPieceID(at: p) else { return }
+        switch manager?.tool ?? .drill {
+        case .drill:  activePieceID = id           // 누르는 동안 update에서 연속 처리
+        case .chisel: manager?.chisel(pieceID: id) // 한 번 탕!
         }
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let t = touches.first, let d = dragging else { return }
+        guard let t = touches.first else { return }
         let p = t.location(in: self)
-        d.position = CGPoint(x: p.x - dragOffset.width, y: p.y - dragOffset.height)
+        if editMode {
+            guard let d = dragging else { return }
+            d.position = CGPoint(x: p.x - dragOffset.width, y: p.y - dragOffset.height)
+        } else if manager?.tool == .drill {
+            activePieceID = topPieceID(at: p)       // 드릴을 끌고 다니면 닿는 조각 갱신
+        }
     }
 
-    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) { dragging = nil }
-    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) { dragging = nil }
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        dragging = nil
+        activePieceID = nil
+    }
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        dragging = nil
+        activePieceID = nil
+    }
 
-    // MARK: - 좌표 출력
+    // MARK: - 매 프레임: 드릴 연속 처리 + 그림 갱신
 
-    /// 현재 조각 위치를 Xcode 콘솔에 Swift 배열 형태로 찍는다. 그대로 bakedLayout에 붙여넣으면 됨.
+    override func update(_ currentTime: TimeInterval) {
+        let dt = lastUpdate == 0 ? 0 : currentTime - lastUpdate
+        lastUpdate = currentTime
+
+        if !editMode, let id = activePieceID, manager?.tool == .drill {
+            manager?.drill(pieceID: id, pressure: pressureProvider(), dt: dt)
+        }
+        refreshVisuals()
+    }
+
+    /// 매니저의 hp 상태를 조각 그림에 반영.
+    private func refreshVisuals() {
+        guard let m = manager else { return }
+        for piece in m.pieces where piece.id < pieces.count {
+            let node = pieces[piece.id]
+            if piece.isCleared {
+                revealCoffin(id: piece.id, node: node)
+            } else {
+                // hp 닳을수록 어둡게(약해지는 느낌)
+                node.color = .black
+                node.colorBlendFactor = CGFloat((1 - piece.hp) * 0.6)
+            }
+        }
+    }
+
+    /// 조각이 0이 된 칸: 톡 사라졌다가 금빛 '관 노출' 패치로 바뀐다(터치 판정은 유지 → 닿으면 실패).
+    private func revealCoffin(id: Int, node: SKSpriteNode) {
+        guard !clearedShown.contains(id) else { return }
+        clearedShown.insert(id)
+        let reveal = SKAction.sequence([
+            .group([.fadeAlpha(to: 0, duration: 0.15), .scale(to: 0.6, duration: 0.15)]),
+            .run { [coffinColor] in
+                node.texture = nil
+                node.color = coffinColor
+                node.colorBlendFactor = 1
+                node.setScale(1)
+            },
+            .fadeAlpha(to: 0.5, duration: 0.15)
+        ])
+        node.run(reveal)
+    }
+
+    /// 실패 연출: 화면 붉게 번쩍.
+    func flashFail() {
+        let flash = SKSpriteNode(color: .red, size: size)
+        flash.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        flash.zPosition = 1000
+        flash.alpha = 0
+        addChild(flash)
+        flash.run(.sequence([.fadeAlpha(to: 0.6, duration: 0.08),
+                             .fadeAlpha(to: 0, duration: 0.25),
+                             .removeFromParent()]))
+    }
+
+    // MARK: - 좌표 출력(배치 모드)
+
     func dumpPositions() {
         let lines = pieces
             .sorted { ($0.name ?? "") < ($1.name ?? "") }
