@@ -44,6 +44,7 @@ final class Stage1GameManager: ObservableObject {
     @Published private(set) var pieces: [RockPiece]   // 돌 조각들(각자 HP)
     @Published var tool: Stage1Tool = .drill          // 현재 도구(버튼 탭으로 전환)
     @Published private(set) var didDamageCoffin = false // 실패 ① 트리거(관 손상)
+    @Published private(set) var didClear = false        // 클리어 트리거(모든 조각 0)
 
     // 튜닝 상수 (추후 플레이 테스트로 조정) — 한곳에 모음
     private let drillRate: Double = 0.9    // 드릴: 초당 최대 감소량(pressure=1, dt=1 기준)
@@ -98,5 +99,6 @@ final class Stage1GameManager: ObservableObject {
 
     private func damage(at i: Int, amount: Double) {
         pieces[i].hp = max(0, pieces[i].hp - amount)
+        if isCleared { didClear = true }
     }
 }
