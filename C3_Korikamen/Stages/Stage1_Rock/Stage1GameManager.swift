@@ -52,8 +52,8 @@ final class Stage1GameManager: ObservableObject {
     /// 클리어: 모든 조각 HP 0.
     var isCleared: Bool { pieces.allSatisfy { $0.isCleared } }
 
-    /// pieceCount 개로 바위를 분할해 시작.
-    init(pieceCount: Int = 9) {
+    /// pieceCount 개로 바위를 분할해 시작. (에셋이 조각 12장이라 기본 12)
+    init(pieceCount: Int = 12) {
         pieces = (0..<pieceCount).map { RockPiece(id: $0) }
     }
 
