@@ -1,0 +1,15 @@
+{
+  "images" : [
+    {
+      "filename" : "CoffinKori.png",
+      "idiom" : "universal"
+    },
+    {
+      "idiom" : "ipad"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
