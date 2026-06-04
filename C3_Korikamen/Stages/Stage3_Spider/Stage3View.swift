@@ -12,12 +12,12 @@ struct Stage3View: View {
     let onFail: () -> Void
     
     @StateObject private var timer = CountdownTimer(duration: 90)    // 90초 (기획값)
-    @EnvironmentObject private var pencil: PencilInput //펜슬 입력
+    @EnvironmentObject private var pencil: PencilInput // 펜슬 입력
     @StateObject private var manager = Stage3GameManager() // 로직 클래스 불러오기
     
-    
+     
     // 임시 세로 게이지 바 (테스트용)
-    private var gauageBar : some View {
+    private var gaugeBar : some View {
         GeometryReader { geo in // 막대가 차지하는 실제 크기를 알기 위해 사용
             let h = geo.size.height
             ZStack(alignment:.bottom) {
@@ -42,7 +42,7 @@ struct Stage3View: View {
             Text("스테이지 3 · 관 열기 & 거미줄 제거").font(.largeTitle).bold()
             Text("노튼 담당 — 여기에 게임 구현").foregroundStyle(.secondary)
             Text("남은 시간: \(Int(timer.remaining))초").monospacedDigit()
-            gauageBar // 게이지바 추가
+            gaugeBar // 게이지바 추가
             Text("게이지: \(Int(manager.gauge * 100))%")
             Text("성공: \(manager.successCount)/\(manager.requiredSuccessCount)   거미줄: \(manager.webLayerIndex)겹")
             
