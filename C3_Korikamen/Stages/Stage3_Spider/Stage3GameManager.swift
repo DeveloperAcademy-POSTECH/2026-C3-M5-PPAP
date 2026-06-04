@@ -64,12 +64,10 @@ final class Stage3GameManager: ObservableObject {
             .autoconnect() //자동 켜기
             .sink { [weak self] _ in self?.step() } // 신호가 올 때마다 step() 실행
     }
-    
     // 게이지를 올리는 함수
     private func step() {
         gauge = min(1.0, gauge + gaugeStep) // +2.75%, 1.0은 넘지 않도록.
     }
-    
     // 스퀴즈 손 뗐을 때 호출되는 함수
     func endSqueeze() {
         //guard !isCleared else { return } ->  이미 클리어했을 시, 더 이상 처리 안되도록 안전장치 추가함 (이건 해보고 버그 있으면 추가할 예정)
@@ -83,7 +81,6 @@ final class Stage3GameManager: ObservableObject {
             fail()
         } // 실패 처리
     }
-    
     // 성공 처리 함수
     private func success() {
         successCount += 1 // 성공 횟수 1 증가
@@ -94,11 +91,9 @@ final class Stage3GameManager: ObservableObject {
             randomizeRange() // 다음 라운드 목표 범위 랜덤 변경되도록
         }
     }
-    
     // 실패 처리 함수 ( 게이지만 리셋되고, 기존 범위는 유지 )
     private func fail() {
         gauge = 0 }
-    
     //성공할 때마다 다음 라운드의 목표 범위를 랜덤하게 만드는 함수 ( 2 ~ 5 라운드용 ).
     private func randomizeRange() {
         let width = Double.random(in: 0.06...0.12)// 범위 폭 :  6~12% 정도 (추후 테스트)
