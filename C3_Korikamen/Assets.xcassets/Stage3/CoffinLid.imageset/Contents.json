@@ -1,0 +1,15 @@
+{
+  "images" : [
+    {
+      "filename" : "CoffinLid.png",
+      "idiom" : "universal"
+    },
+    {
+      "idiom" : "ipad"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
