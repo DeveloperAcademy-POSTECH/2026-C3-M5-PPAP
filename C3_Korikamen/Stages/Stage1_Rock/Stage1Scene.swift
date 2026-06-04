@@ -50,8 +50,10 @@ final class Stage1Scene: SKScene {
     /// 관 크기 배율(1.0 = 원본).
     static let coffinScale: CGFloat = 1.0
 
-    /// 알파 판정 문턱(0~255). 이 값 이상이면 '실제 그림이 있는' 픽셀로 본다.
+    /// 알파 판정 문턱(0~255). 이 값 이상이면 '실제 그림이 있는' 픽셀로 본다(돌용).
     private let alphaThreshold: UInt8 = 10
+    /// 관 전용(더 높음) — 관 위험영역을 안쪽으로 줄여 가장자리에 안전 여유를 준다. 키울수록 더 관대.
+    private let coffinAlphaThreshold: UInt8 = 160
 
     // MARK: - 외부 연결(뷰에서 주입)
 
@@ -346,7 +348,8 @@ final class Stage1Scene: SKScene {
 
     /// 그 지점이 노드의 '실제 그림' 위인지(투명 모서리는 false). 마스크 없으면 사각형 전체 solid.
     /// 판정은 흔들림(shake) 전의 '원래 중심(center)' 기준 → 진동 중에도 선택이 안 흔들린다.
-    private func isOpaque(_ node: SKSpriteNode, _ mask: AlphaMask?, center: CGPoint, at p: CGPoint) -> Bool {
+    private func isOpaque(_ node: SKSpriteNode, _ mask: AlphaMask?, center: CGPoint, at p: CGPoint,
+                          threshold: UInt8? = nil) -> Bool {
         let s = node.xScale == 0 ? 1 : node.xScale
         let w = node.size.width, h = node.size.height
         guard w > 0, h > 0 else { return false }
@@ -357,7 +360,7 @@ final class Stage1Scene: SKScene {
         let px = Int((lx + w / 2) / w * CGFloat(mask.width))
         let py = Int((1 - (ly + h / 2) / h) * CGFloat(mask.height))      // 이미지 y는 위가 0
         guard let a = mask.alpha(px, py) else { return false }
-        return a >= alphaThreshold
+        return a >= (threshold ?? alphaThreshold)
     }
 
     /// 그 지점에서 '아직 안 깨진' 돌 중 맨 위(z 최고). 알파로 실제 그림 위만 인정.
@@ -372,16 +375,25 @@ final class Stage1Scene: SKScene {
         return best
     }
 
-    /// 그 지점에 관 그림 픽셀이 있는지(덮였는지는 따지지 않음).
+    /// 그 지점에 관의 '핵심(높은 알파)' 픽셀이 있는지. 문턱을 높여 가장자리 여유를 둔다.
     private func coffinPixel(at p: CGPoint) -> Bool {
         guard let node = coffinNode else { return false }
-        return isOpaque(node, coffinMask, center: node.position, at: p)
+        return isOpaque(node, coffinMask, center: node.position, at: p, threshold: coffinAlphaThreshold)
     }
 
-    /// 실패 지대: 관 픽셀이 있고 + 지금 산 돌이 안 덮은 곳(=노출된 관 전체).
-    /// 깨고 나면 관 전체가 위험해진다. 시작부터 조각 틈으로 보이는 관도 위험.
+    /// 시작 시 '돌(아무 조각이나)'이 그 지점을 덮고 있었는가. (깬 조각도 포함 → 원래 덮였던 자리 판별)
+    private func wasCoveredByRock(at p: CGPoint) -> Bool {
+        for i in pieces.indices {
+            let center = basePositions[i] ?? pieces[i].position
+            if isOpaque(pieces[i], rockMasks[i], center: center, at: p) { return true }
+        }
+        return false
+    }
+
+    /// 실패 지대: 관 핵심 픽셀 + 원래 돌이 덮었던 자리 + 지금은 산 돌 없음(=깨서 노출됨).
+    /// 처음부터 있던 조각 사이 '틈'은 안전. 관 가장자리도 알파 문턱 덕분에 여유.
     private func coffinDanger(at p: CGPoint) -> Bool {
-        coffinPixel(at: p) && topLiveRockIndex(at: p) == nil
+        coffinPixel(at: p) && wasCoveredByRock(at: p) && topLiveRockIndex(at: p) == nil
     }
 
     // MARK: - 디버그 터치맵
