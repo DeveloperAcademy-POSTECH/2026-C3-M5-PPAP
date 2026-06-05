@@ -42,7 +42,7 @@ struct Stage3View: View {
                     .animation(.easeInOut(duration: 0.5), value: manager.targetMin)// 범위 변경 시 애니메이션 효과 추가
                     .animation(.easeInOut(duration: 0.5), value: manager.targetMax) // 범위 변경 시 애니메이션 효과 추가
                 RoundedRectangle(cornerRadius: 8)// 현재 게이지(노란색으로)
-                    .fill(Color.yellow) //게이지 올라갈 때 하늘색으로
+                    .fill(Color.cyan) //게이지 올라갈 때 하늘색으로
                     .frame(height: h * manager.gauge) //게이지 비율만큼 표현
             }
         }
@@ -77,10 +77,10 @@ struct Stage3View: View {
                 VStack{
                     gaugeBar // scene2일 때 게이지바 추가
                         .padding(.trailing, 30)
-                    Text("게이지: \(Int(manager.gauge * 100))%")
-                        .foregroundStyle(Color.white.opacity(0.8))
-                    Text("성공: \(manager.successCount)/\(manager.requiredSuccessCount)   거미줄: \(manager.webLayerIndex)겹")
-                        .foregroundStyle(Color.white.opacity(0.8))
+                    // Text("게이지: \(Int(manager.gauge * 100))%")
+                    //  .foregroundStyle(Color.white.opacity(0.8))
+                    // Text("성공: \(manager.successCount)/\(manager.requiredSuccessCount)   거미줄: \(manager.webLayerIndex)겹")
+                    //   .foregroundStyle(Color.white.opacity(0.8))
                 }
             }
         }
