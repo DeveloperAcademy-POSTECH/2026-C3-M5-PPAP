@@ -15,12 +15,15 @@ struct Stage2View: View {
     var body: some View {
         VStack(spacing: 20) {
             Text("스테이지 2 · 관 자물쇠 따기").font(.largeTitle).bold()
-            Text("실라 담당 — 여기에 게임 구현").foregroundStyle(.secondary)
             Text("남은 시간: \(Int(timer.remaining))초").monospacedDigit()
-            HStack {
-                Button("클리어 → 다음", action: onClear).buttonStyle(.borderedProminent)
-                Button("실패(테스트)", role: .destructive, action: onFail)
+            
+            LockGaugeView {
+                timer.stop()
+                onClear()
             }
+            
+            Button("실패(테스트)", role: .destructive, action: onFail)
+
         }
         .padding()
         .onAppear { timer.start() }
