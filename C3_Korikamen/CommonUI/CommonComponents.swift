@@ -65,6 +65,7 @@ struct TimerHUDView: View {
                 TickSound.play() //1회 재생
             }
         }
+        .onDisappear{TickSound.stop()} //타이머가 사라지면 소리 정지되도록 
         
     }
 }

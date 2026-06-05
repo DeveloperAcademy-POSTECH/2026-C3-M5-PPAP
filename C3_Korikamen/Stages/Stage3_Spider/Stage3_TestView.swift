@@ -21,6 +21,7 @@ struct Stage3_TestView: View {
 }
 
 #Preview {
+    //맥스 아카데미 나갈 예정
     Stage3_TestView()
 }
 
