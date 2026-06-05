@@ -9,7 +9,7 @@ import Combine
 import CoreGraphics
 import SwiftUI
 
-struct Stage2LockGaugeView: View {
+struct LockGaugeView: View {
     @EnvironmentObject private var pencil: PencilInput      // 펜슬 입력
 
     @State private var tiltRangeLower = 35.0        // 목표 Tilt 범위(Lower)

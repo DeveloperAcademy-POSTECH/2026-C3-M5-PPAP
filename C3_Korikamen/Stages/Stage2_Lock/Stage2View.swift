@@ -17,7 +17,7 @@ struct Stage2View: View {
             Text("스테이지 2 · 관 자물쇠 따기").font(.largeTitle).bold()
             Text("남은 시간: \(Int(timer.remaining))초").monospacedDigit()
             
-            Stage2LockGaugeView {
+            LockGaugeView {
                 timer.stop()
                 onClear()
             }
