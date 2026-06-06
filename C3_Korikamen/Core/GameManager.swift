@@ -15,6 +15,7 @@ enum GamePhase: Equatable {
     case main          // 메인(타이틀) 화면 — 시작 지점 + 실패 시 돌아오는 곳
     case intro // 추가
     case stage(Int)
+    case interlude(Int) // 추가: 스테이지 후 스토리(1 = stage 1)
     case ending
 }
 
@@ -27,22 +28,25 @@ final class GameManager: ObservableObject {
     
     private lazy var machine = GKStateMachine(states: [
         MainState(self), IntroState(self), Stage1State(self), Stage2State(self),
-        Stage3State(self), EndingState(self),
+        Stage3State(self), EndingState(self), Interlude1State(self), Interlude2State(self), //추가
     ])
 
     init() { machine.enter(MainState.self) }
 
     func recordTime(stage: Int, elapsed: Double) { stageTimes[stage] = elapsed }
 
-    func advance() {
+    func advance() { // 전환 로직 추가
         switch phase {
         case .main:     machine.enter(IntroState.self)
         case .intro:    machine.enter(Stage1State.self)
-        case .stage(1): machine.enter(Stage2State.self)
-        case .stage(2): machine.enter(Stage3State.self)
+        case .stage(1): machine.enter(Interlude1State.self)
+        case .interlude(1): machine.enter(Stage2State.self)
+        case .stage(2): machine.enter(Interlude2State.self)
+        case .interlude(2): machine.enter(Stage3State.self)
         case .stage(3): machine.enter(EndingState.self)
         case .ending:   machine.enter(MainState.self)
         case .stage:    break
+        case .interlude: break
         }
     }
 
@@ -77,11 +81,11 @@ final class IntroState: GameBaseState {
 
 final class Stage1State: GameBaseState {
     override func didEnter(from p: GKState?) { manager?.updatePhase(.stage(1)) }
-    override func isValidNextState(_ s: AnyClass) -> Bool { s == Stage2State.self || s == MainState.self }
+    override func isValidNextState(_ s: AnyClass) -> Bool { s == Interlude1State.self || s == MainState.self }
 }
 final class Stage2State: GameBaseState {
     override func didEnter(from p: GKState?) { manager?.updatePhase(.stage(2)) }
-    override func isValidNextState(_ s: AnyClass) -> Bool { s == Stage3State.self || s == MainState.self }
+    override func isValidNextState(_ s: AnyClass) -> Bool { s == Interlude2State.self || s == MainState.self }
 }
 final class Stage3State: GameBaseState {
     override func didEnter(from p: GKState?) { manager?.updatePhase(.stage(3)) }
@@ -90,4 +94,14 @@ final class Stage3State: GameBaseState {
 final class EndingState: GameBaseState {
     override func didEnter(from p: GKState?) { manager?.updatePhase(.ending) }
     override func isValidNextState(_ s: AnyClass) -> Bool { s == MainState.self }
+}
+
+//스테이지 클리어 후 나올 스토리 관련 상태 로직 추가
+final class Interlude1State: GameBaseState {
+    override func didEnter(from p: GKState?) { manager?.updatePhase(.interlude(1)) }
+    override func isValidNextState(_ s: AnyClass) -> Bool { s == Stage2State.self || s == MainState.self }
+}
+final class Interlude2State: GameBaseState {
+    override func didEnter(from p: GKState?) { manager?.updatePhase(.interlude(2)) }
+    override func isValidNextState(_ s: AnyClass) -> Bool { s == Stage3State.self || s == MainState.self }
 }
