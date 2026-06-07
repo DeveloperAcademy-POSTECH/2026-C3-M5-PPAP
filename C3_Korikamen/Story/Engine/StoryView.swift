@@ -90,7 +90,7 @@ struct StoryView: View {
             Button {
                 player.skip()
             } label : {
-                Text("skip")
+                Text("Skip")
                     .font(.system(size: 22, weight:.semibold))
                     .foregroundColor(.white)
                     .padding(.horizontal, 16)
