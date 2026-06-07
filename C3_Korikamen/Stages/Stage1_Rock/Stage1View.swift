@@ -47,12 +47,14 @@ struct Stage1View: View {
 
             // 상단 HUD: 남은 시간 + 도구 전환
             VStack {
+                topHUD
+                Spacer()
                 HStack {
                     Spacer()
                     toolButton
+                        .padding(.horizontal, 30)
+                        .padding(.bottom, 20)
                 }
-                .overlay(alignment: .top){ topHUD }
-                Spacer()
             }
             .padding()
 
@@ -105,16 +107,24 @@ struct Stage1View: View {
     //테스트(타이머 확인용)  <- 맥스 형님 확인 부탁드립니다.
         
     }
-    /// 도구 전환 버튼(드릴 ↔ 끌).
+    
     private var toolButton: some View {
         Button {
             manager.selectTool(manager.tool == .drill ? .chisel : .drill)
         } label: {
-            Label(manager.tool == .drill ? "드릴" : "끌",
-                  systemImage: manager.tool == .drill ? "wrench.and.screwdriver.fill" : "hammer.fill")
+            ZStack {
+                Circle()
+                    .fill(.clear)
+                    .glassEffect(.clear, in: Circle())
+                    .opacity(0.75)                 // ← 배경만 더 투명하게 (아이콘 영향 X)
+                Image(manager.tool == .drill ? "drill" : "chisel")
+                    .resizable()
+                    .scaledToFit()
+                    .padding(28)
+            }
+            .frame(width: 120, height: 120)
         }
-        .buttonStyle(.borderedProminent)
-        .tint(manager.tool == .drill ? .orange : .blue)
+        .buttonStyle(.plain)
     }
 
     #if DEBUG
