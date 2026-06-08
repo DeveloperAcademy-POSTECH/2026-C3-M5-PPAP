@@ -31,6 +31,7 @@ final class Stage1Scene: SKScene {
     // MARK: - 외부 연결(뷰에서 주입)
 
     weak var manager: Stage1GameManager?
+    weak var haptics: Haptics?
     var pressureProvider: () -> Double = { 0 }
     var editMode = false {
         didSet {
@@ -222,10 +223,12 @@ final class Stage1Scene: SKScene {
                 m.drill(pieceID: i, pressure: pressureProvider(), dt: dt)
                 effects?.startDrillShake(id: i)                 // 연속 진동
                 effects?.drillDebris(at: p, color: rockColor(i))// 연속 파편
+                haptics?.pulse()                                // 드릴: 빠른 주기 진동
             case .chisel:
                 m.chisel(pieceID: i)
                 effects?.shakeOnce(id: i)                       // 타격당 1번 흔들림
                 effects?.burstDebris(at: p, color: rockColor(i))// 타격당 파편 버스트
+                haptics?.tap()                                  // 끌: 타격당 1번 진동
             }
         } else if hit.coffinDanger(at: p) {
             m.touchCoffin()
