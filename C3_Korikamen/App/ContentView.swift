@@ -43,10 +43,11 @@ struct ContentView: View {
                         Stage2View(onClear: game.advance, onFail: game.fail)
                     }
             case .stage(3):
-                    StageStartView(titleImage: "stage3title",
-                        tutorialImage: "img_stage3tutorial_papyrus") {
-                            Stage3View(onClear: game.advance, onFail: game.fail)
-                        }
+                StageStartView(titleImage: "stage3title",
+                    tutorialImage: "img_stage3tutorial_papyrus",
+                        startButtonImage: "btn_stage3tutorial(btn_normal)_start_normal") {   // ← Stage3 전용
+                    Stage3View(onClear: game.advance, onFail: game.fail)
+                }
     
             case .interlude(1): StoryView(player: StoryPlayer(pages: stage1Story, onFinish: game.advance))   // ← 추가
             case .interlude(2): StoryView(player: StoryPlayer(pages: stage2Story, onFinish: game.advance))   // ← 추가

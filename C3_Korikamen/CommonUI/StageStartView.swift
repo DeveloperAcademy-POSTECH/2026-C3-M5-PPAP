@@ -12,6 +12,7 @@ import SwiftUI
 struct StageStartView<Content: View>: View {
     let titleImage: String        // 스테이지 시작화면 이미지
     let tutorialImage: String     // 시작화면 위에 겹쳐질 튜토리얼 이미지
+    var startButtonImage: String = "btn_stagetutorial(btn_normal)_start_normal"
     @ViewBuilder var content: () -> Content   // 실제 게임 뷰
 
     private enum Phase { case title, tutorial, playing }
@@ -27,7 +28,7 @@ struct StageStartView<Content: View>: View {
                     .scaledToFill()
                     .ignoresSafeArea()
 
-                if phase == .tutorial {                 // 시작화면 위에 튜토리얼 겹치기
+                if phase == .tutorial {
                     Color.black.opacity(0.35).ignoresSafeArea()
                     VStack {
                         Spacer()
@@ -35,19 +36,36 @@ struct StageStartView<Content: View>: View {
                             .resizable()
                             .scaledToFit()
                             .frame(maxWidth: .infinity)
+                            .overlay(alignment: .bottomTrailing) {        // 파피루스 우측 하단
+                                Button { phase = .playing } label: {       // 이 버튼이 게임 시작
+                                    Image(startButtonImage)
+                                        .resizable().scaledToFit().frame(width: 200)
+                                }
+                                .buttonStyle(.plain)
+                                .padding(.trailing, 90)
+                                .padding(.bottom, 40)
+                            }
                     }
                     .ignoresSafeArea(edges: .bottom)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
             .contentShape(Rectangle())
+            // 게임 시작은 버튼으로만, 화면 탭은 시작화면→튜토리얼 전환만
             .onTapGesture {
-                switch phase {
-                case .title:    withAnimation(.easeInOut(duration: 0.25)) { phase = .tutorial }
-                case .tutorial: phase = .playing        // 두 번째 탭 → 게임 시작
-                case .playing:  break
+                if phase == .title {
+                    withAnimation(.easeInOut(duration: 0.25)) { phase = .tutorial }
                 }
+                // tutorial 단계에선 화면 탭 무시 → 우측 하단 버튼을 눌러야 게임 시작
             }
         }
     }
 }
+
+#Preview(traits: .landscapeLeft) {
+    StageStartView(titleImage: "stage1title",
+                   tutorialImage: "img_stage1tutorial_papyrus") {
+        Color.black
+    }
+}
+
