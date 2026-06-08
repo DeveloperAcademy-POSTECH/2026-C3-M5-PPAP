@@ -74,6 +74,9 @@ struct Stage1View: View {
         }
         .onChange(of: pencil.state.location)   { _, _ in feedPencil() }
         .onChange(of: pencil.state.isTouching) { _, _ in feedPencil() }
+        .onChange(of: pencil.state.doubleTapCount) { _, _ in
+            manager.selectTool(manager.tool == .drill ? .chisel : .drill)
+        }
         .onChange(of: editMode) { _, on in scene.editMode = on }
         .onChange(of: showHitboxes) { _, on in scene.showHitboxes = on }
         .onChange(of: showTouchMap) { _, on in scene.showTouchMap = on }
