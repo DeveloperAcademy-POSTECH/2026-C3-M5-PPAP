@@ -52,6 +52,6 @@ final class StoryPlayer: ObservableObject {
         index += 1
         beat = .revealing
         //clickSound.play()  // ← 추가: 다음 컷으로 넘어갈 때 클릭음
-        mapSound.play() 
+        // mapSound.play() //너무 별로라 제외함
     }
 }

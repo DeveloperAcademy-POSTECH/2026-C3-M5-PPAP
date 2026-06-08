@@ -29,9 +29,11 @@ struct TypewriterText: View {
     private func start() {
         shown = ""
         var index = 0
+        SpeakSound.start() // 텍스트 입력 시작 시 사운드 재생
         timer = Timer.scheduledTimer(withTimeInterval: speed, repeats: true) { t in
             
             guard index < fullText.count else { t.invalidate()
+                SpeakSound.stop()  // ← 타이핑 자연 완료 → 정지
                 onFinished()
                 return
             }
@@ -44,6 +46,7 @@ struct TypewriterText: View {
     private func skip() {
         timer?.invalidate()           // 타이핑 멈추고
         shown = fullText
-        onFinished()    // 스킵해도 완료 처리 + 전체 즉시 표시    
+        SpeakSound.stop() // ← 스킵해도 정지
+        onFinished()    // 스킵해도 완료 처리 + 전체 즉시 표시
     }
 }
