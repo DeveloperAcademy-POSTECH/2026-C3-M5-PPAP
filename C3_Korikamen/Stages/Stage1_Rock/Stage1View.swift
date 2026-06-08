@@ -15,6 +15,7 @@ struct Stage1View: View {
     @EnvironmentObject private var pencil: PencilInput
     @StateObject private var manager = Stage1GameManager()
     @StateObject private var timer = CountdownTimer(duration: 60)   // 60초 임시값(TBD)
+    @StateObject private var haptics = Haptics()
     @State private var scene = Stage1Scene(size: Stage1Layout.designSize)
     @State private var editMode = false
     @State private var showHitboxes = false
@@ -66,8 +67,10 @@ struct Stage1View: View {
             if adjustMode { adjustPanel }
             #endif
         }
+        .stageHaptics(haptics)
         .onAppear {
             scene.manager = manager
+            scene.haptics = haptics
             scene.pressureProvider = { 1.0 }        // pressure 안써서 고정값으로 일단 넣어뒀어요
             applyTransform()   // 저장된(또는 기본) 위치·배율을 씬에 반영 — 릴리스 포함 항상
             timer.start()
