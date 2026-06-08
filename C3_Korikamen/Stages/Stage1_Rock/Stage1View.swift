@@ -11,7 +11,7 @@ import SpriteKit
 struct Stage1View: View {
     let onClear: () -> Void
     let onFail: () -> Void
-
+    
     @EnvironmentObject private var pencil: PencilInput
     @StateObject private var manager = Stage1GameManager()
     @StateObject private var timer = CountdownTimer(duration: 60)   // 60초 임시값(TBD)
@@ -28,7 +28,10 @@ struct Stage1View: View {
     @State private var coffinX = Double(Stage1Transform.load().coffinPosition.x)
     @State private var coffinY = Double(Stage1Transform.load().coffinPosition.y)
     @State private var coffinScale = Double(Stage1Transform.load().coffinScale)
-
+    
+    // 시간 임박(15초 이하) 경고 상태
+    private var isTimeWarning: Bool { timer.remaining <= 15 && timer.remaining > 0 }
+    
     var body: some View {
         ZStack {
             Image("Stage1Background") //배경 추가
@@ -37,20 +40,24 @@ struct Stage1View: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .ignoresSafeArea()
             
+            WarningBorderView(isWarning: isTimeWarning)
+            
             SpriteView(scene: scene, options: [.allowsTransparency]) // spritekit 배경 투명하게 설정
                 .ignoresSafeArea()
+                .overlay {
+                    RealPencilFeeder()
+                }
 
             // 상단 HUD: 남은 시간 + 도구 전환
             VStack {
+                topHUD
+                Spacer()
                 HStack {
-                    Text("남은 시간: \(Int(timer.remaining))초")
-                        .monospacedDigit()
-                        .padding(8)
-                        .background(.ultraThinMaterial, in: Capsule())
                     Spacer()
                     toolButton
+                        .padding(.horizontal, 30)
+                        .padding(.bottom, 20)
                 }
-                Spacer()
             }
             .padding()
 
@@ -61,10 +68,12 @@ struct Stage1View: View {
         }
         .onAppear {
             scene.manager = manager
-            scene.pressureProvider = { let p = pencil.state.pressure; return p > 0 ? p : 0.5 }
+            scene.pressureProvider = { 1.0 }        // pressure 안써서 고정값으로 일단 넣어뒀어요
             applyTransform()   // 저장된(또는 기본) 위치·배율을 씬에 반영 — 릴리스 포함 항상
             timer.start()
         }
+        .onChange(of: pencil.state.location)   { _, _ in feedPencil() }
+        .onChange(of: pencil.state.isTouching) { _, _ in feedPencil() }
         .onChange(of: editMode) { _, on in scene.editMode = on }
         .onChange(of: showHitboxes) { _, on in scene.showHitboxes = on }
         .onChange(of: showTouchMap) { _, on in scene.showTouchMap = on }
@@ -78,17 +87,47 @@ struct Stage1View: View {
             }
         }
     }
+    
+    //테스트(타이머 확인용) <- 맥스 형님 확인 부탁드립니다.
+    private var topHUD: some View {
+        HStack{
+            // 좌측 상단 타이틀
+            Image("Stage1_Title")
+                .resizable()
+                .scaledToFit()
+                .frame(height: 60)
 
-    /// 도구 전환 버튼(드릴 ↔ 끌).
+            Spacer()
+
+            //우측 상단 타이머
+            TimerHUDView(remaining: timer.remaining,
+                         normalImage: "Stage12Timer",
+                         warningImage: "Stage3Timer")
+        }
+        .padding(.horizontal, 30)
+        .padding(.top, 20)
+        
+    //테스트(타이머 확인용)  <- 맥스 형님 확인 부탁드립니다.
+        
+    }
+    
     private var toolButton: some View {
         Button {
             manager.selectTool(manager.tool == .drill ? .chisel : .drill)
         } label: {
-            Label(manager.tool == .drill ? "드릴" : "끌",
-                  systemImage: manager.tool == .drill ? "wrench.and.screwdriver.fill" : "hammer.fill")
+            ZStack {
+                Circle()
+                    .fill(.clear)
+                    .glassEffect(.clear, in: Circle())
+                    .opacity(0.75)                 // ← 배경만 더 투명하게 (아이콘 영향 X)
+                Image(manager.tool == .drill ? "drill" : "chisel")
+                    .resizable()
+                    .scaledToFit()
+                    .padding(28)
+            }
+            .frame(width: 120, height: 120)
         }
-        .buttonStyle(.borderedProminent)
-        .tint(manager.tool == .drill ? .orange : .blue)
+        .buttonStyle(.plain)
     }
 
     #if DEBUG
@@ -169,5 +208,11 @@ struct Stage1View: View {
                         pileScale: CGFloat(pileScale),
                         coffinPosition: CGPoint(x: coffinX, y: coffinY),
                         coffinScale: CGFloat(coffinScale)).save()
+    }
+    
+    /// 계약(PencilState)의 위치·접촉을 씬에 전달 — Stage2/3와 동일한 입력 경로.
+    private func feedPencil() {
+        scene.applyPencil(viewLocation: pencil.state.isTouching ? pencil.state.location : nil,
+                          isActive: pencil.state.isTouching)
     }
 }
