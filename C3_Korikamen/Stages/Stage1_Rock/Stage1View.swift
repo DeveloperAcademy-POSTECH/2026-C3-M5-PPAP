@@ -92,10 +92,12 @@ struct Stage1View: View {
     private var topHUD: some View {
         HStack{
             // 좌측 상단 타이틀
-            Image("Stage1_Title")
+            /* Image("Stage1_Title")
                 .resizable()
                 .scaledToFit()
-                .frame(height: 60)
+                .frame(width: 300, height: 60)
+                .border(Color.wh)
+             */
 
             Spacer()
 
@@ -103,9 +105,10 @@ struct Stage1View: View {
             TimerHUDView(remaining: timer.remaining,
                          normalImage: "Stage12Timer",
                          warningImage: "Stage3Timer")
+            
         }
         .padding(.horizontal, 30)
-        .padding(.top, 20)
+        .padding(.top, 40)
         
     //테스트(타이머 확인용)  <- 맥스 형님 확인 부탁드립니다.
         

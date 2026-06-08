@@ -27,11 +27,21 @@ enum MainBGM {
     }
 }
 
-// 시나리오 전개시 클릭 소리 컴포넌트
+// 시나리오 전개시 클릭 소리 컴포넌트(딸깍)
 enum clickSound {
     static var player: AVAudioPlayer?
     static func play() {
         guard let url = Bundle.main.url(forResource: "click", withExtension: "m4a") else { return }
+        player = try? AVAudioPlayer(contentsOf: url)
+        player?.play()
+    }
+}
+
+// 시나리오 전개시 클릭 소리 컴포넌트#2 (스르륵)
+enum mapSound {
+    static var player: AVAudioPlayer?
+    static func play() {
+        guard let url = Bundle.main.url(forResource: "map", withExtension: "m4a") else { return }
         player = try? AVAudioPlayer(contentsOf: url)
         player?.play()
     }
