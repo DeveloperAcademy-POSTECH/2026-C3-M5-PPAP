@@ -35,11 +35,11 @@ struct StageStartView<Content: View>: View {
                             .overlay(alignment: .bottomTrailing) {
                                 Button { phase = .playing } label: {
                                     Image(startButtonImage)
-                                        .resizable().scaledToFit().frame(width: 200)
+                                        .resizable().scaledToFit().frame(width: 150)
                                 }
                                 .buttonStyle(.plain)
                                 .padding(.trailing, 120)    // 왼쪽으로 옮긴 값
-                                .padding(.bottom, 40)
+                                .padding(.bottom, 45)
                             }
                     }
                     .ignoresSafeArea(edges: .bottom)
