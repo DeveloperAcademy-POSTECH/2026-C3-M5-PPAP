@@ -237,7 +237,10 @@ struct Stage3View: View { // 맥스 바보
 
         // MARK: - Scene#1 관련 기믹
         .onChange(of: pencil.state.isTouching){ _, touching in
-            if !touching { // 손 뗐을 때
+            if touching {
+                if manager.scene == .openingLid { MoveLidSound.start() }  // 관 옮기는 동안 소리
+            } else { // 손 뗐을 때
+                MoveLidSound.stop()       // 소리 정지
                 manager.endLidDrag() // 열림 or 복귀 판정
                 dragStartX = nil // 시작점 초기화
             }
