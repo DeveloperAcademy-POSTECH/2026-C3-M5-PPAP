@@ -179,8 +179,29 @@ enum Stage1BGM {
     }
 }
 
+enum DrillSound {
+    static var player: AVAudioPlayer?
+    static func start() {
+        if player?.isPlaying == true { return } // 중복 방지
+        guard let url = Bundle.main.url(forResource: "drill", withExtension: "m4a") else { return }
+        player = try? AVAudioPlayer(contentsOf: url)
+        player?.numberOfLoops = -1  // 누르는 동안 반복되도록
+        player?.play()
+    }
+    static func stop() {
+        player?.stop()
+        player = nil
+    }
+}
 
-
+enum ChiselSound {
+    static var player: AVAudioPlayer?
+    static func play() {
+        guard let url = Bundle.main.url(forResource: "impact-stone", withExtension: "m4a") else { return }
+        player = try? AVAudioPlayer(contentsOf: url)
+        player?.play()          // 반복 없음 = 한 번만
+    }
+}
 // MARK: - 스테이지2
 enum Stage2BGM {
     static var player: AVAudioPlayer?
