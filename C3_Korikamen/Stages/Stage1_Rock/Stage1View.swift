@@ -20,7 +20,7 @@ struct Stage1View: View {
     @State private var editMode = false
     @State private var showHitboxes = false
     @State private var showTouchMap = false
-
+    
     // 조정모드(돌무더기/관 위치·크기 실시간 조절) — 저장된 값으로 시작(없으면 기본값)
     @State private var adjustMode = false
     @State private var pileX = Double(Stage1Transform.load().pilePosition.x)
@@ -47,7 +47,7 @@ struct Stage1View: View {
                 .overlay {
                     RealPencilFeeder()
                 }
-
+            
             // 상단 HUD: 남은 시간 + 도구 전환
             VStack {
                 topHUD
@@ -60,11 +60,11 @@ struct Stage1View: View {
                 }
             }
             .padding()
-
-            #if DEBUG
+            
+#if DEBUG
             debugBar
             if adjustMode { adjustPanel }
-            #endif
+#endif
         }
         .stageHaptics(haptics)
         .onAppear {
@@ -75,7 +75,18 @@ struct Stage1View: View {
             timer.start()
         }
         .onChange(of: pencil.state.location)   { _, _ in feedPencil() }
-        .onChange(of: pencil.state.isTouching) { _, _ in feedPencil() }
+        .onChange(of: pencil.state.isTouching) { _, touching in
+            feedPencil()
+            if touching {
+                switch manager.tool {
+                case .drill:  DrillSound.start()    // 드릴: 누르는 동안 연속
+                case .chisel: ChiselSound.play()    // 끌: 터치할 때 한 번
+                }
+            } else {
+                DrillSound.stop()                   // 떼면 드릴 정지 (끌은 단발이라 stop 불필요)
+            }
+        }
+        
         .onChange(of: pencil.state.doubleTapCount) { _, _ in
             manager.selectTool(manager.tool == .drill ? .chisel : .drill)
         }
@@ -97,13 +108,13 @@ struct Stage1View: View {
     private var topHUD: some View {
         HStack{
             // 좌측 상단 타이틀
-           /* Image("Stage1_Title")
-                .resizable()
-                .scaledToFit()
-                .frame(height: 60)
-            */
+            /* Image("Stage1_Title")
+             .resizable()
+             .scaledToFit()
+             .frame(height: 60)
+             */
             Spacer()
-
+            
             //우측 상단 타이머
             TimerHUDView(remaining: timer.remaining,
                          normalImage: "Stage12Timer",
@@ -112,7 +123,7 @@ struct Stage1View: View {
         .padding(.horizontal, 30)
         .padding(.top, 20)
         
-    //테스트(타이머 확인용)  <- 맥스 형님 확인 부탁드립니다.
+        //테스트(타이머 확인용)  <- 맥스 형님 확인 부탁드립니다.
         
     }
     
@@ -134,8 +145,8 @@ struct Stage1View: View {
         }
         .buttonStyle(.plain)
     }
-
-    #if DEBUG
+    
+#if DEBUG
     private var debugBar: some View {
         VStack {
             Spacer()
@@ -153,7 +164,7 @@ struct Stage1View: View {
         }
         .padding()
     }
-
+    
     /// 돌무더기/관의 위치·크기를 실시간으로 조절하는 패널.
     private var adjustPanel: some View {
         VStack {
@@ -189,7 +200,7 @@ struct Stage1View: View {
         .padding()
         .frame(maxWidth: .infinity, alignment: .trailing)
     }
-
+    
     private func adjustRow(_ name: String, _ value: Binding<Double>, _ range: ClosedRange<Double>) -> some View {
         HStack {
             Text(name).font(.caption2).frame(width: 70, alignment: .leading)
@@ -199,9 +210,9 @@ struct Stage1View: View {
                 .font(.caption2).monospacedDigit().frame(width: 52, alignment: .trailing)
         }
     }
-
-    #endif
-
+    
+#endif
+    
     /// 현재 값을 씬에 즉시 반영하고 UserDefaults에 저장(재시작 후에도 유지).
     /// 적용은 릴리스 포함 항상, 저장은 조정모드에서 값이 바뀔 때 호출된다.
     private func applyTransform() {
