@@ -11,6 +11,7 @@ import SwiftUI
 struct Stage2View: View {
     let onClear: () -> Void
     let onFail: () -> Void
+    @EnvironmentObject private var game: GameManager
     @StateObject private var timer = CountdownTimer(duration: 90)   // 1분 30초로 수정
 
     var body: some View {
@@ -29,7 +30,8 @@ struct Stage2View: View {
                 LockGaugeView {
                     timer.stop()
                     onClear()
-                 }
+                    game.recordTime(stage: 2, elapsed: timer.elapsed)
+                 } // 추가: 클리어시 해당 스테이지 타이머 저장 
                                 
             }
             .overlay(alignment: .top){ topHUD }

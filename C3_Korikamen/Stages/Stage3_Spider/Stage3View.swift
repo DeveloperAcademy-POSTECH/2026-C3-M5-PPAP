@@ -14,6 +14,7 @@ struct Stage3View: View { // 맥스 바보
 
     @StateObject private var timer = CountdownTimer(duration: 90)    // 90초 (기획값)
     @EnvironmentObject private var pencil: PencilInput // 펜슬 입력
+    @EnvironmentObject private var game: GameManager // 추가
     @StateObject private var manager = Stage3GameManager() // 로직 클래스 불러오기
 
     @State private var coffinScene: Stage3CoffinScene = { //관 scene 인스턴스 변수
@@ -278,6 +279,7 @@ struct Stage3View: View { // 맥스 바보
                 TickSound.stop() // 클리어하면 꺼지도록
                 timer.stop() // 제한시간 타이머 정지
                 onClear() // 다음 단계(엔딩씬)로
+                game.recordTime(stage: 3, elapsed: timer.elapsed)  // 추가: 클리어시 해당 스테이지 타이머 저장
             }
         }
         .onChange(of: manager.successCount) {_, _ in // 성공할 때마다 successCount + 1, wipeProgress -> 1 (거미줄 사라지도록)

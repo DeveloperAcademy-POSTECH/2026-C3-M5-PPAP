@@ -20,7 +20,7 @@ struct Stage1View: View {
     @State private var editMode = false
     @State private var showHitboxes = false
     @State private var showTouchMap = false
-    
+    @EnvironmentObject private var game: GameManager // 추가
     // 조정모드(돌무더기/관 위치·크기 실시간 조절) — 저장된 값으로 시작(없으면 기본값)
     @State private var adjustMode = false
     @State private var pileX = Double(Stage1Transform.load().pilePosition.x)
@@ -94,7 +94,10 @@ struct Stage1View: View {
         .onChange(of: showHitboxes) { _, on in scene.showHitboxes = on }
         .onChange(of: showTouchMap) { _, on in scene.showTouchMap = on }
         .onChange(of: timer.isTimeOver) { _, over in if over { onFail() } }
-        .onChange(of: manager.didClear) { _, cleared in if cleared { timer.stop(); onClear() } }
+        .onChange(of: manager.didClear) { _, cleared in if cleared { timer.stop();
+            onClear()
+            game.recordTime(stage: 1, elapsed: timer.elapsed) // 추가: 클리어시, 해당 스테이지 타이머 시간 저장 
+        } }
         .onChange(of: manager.didDamageCoffin) { _, hit in
             if hit {
                 timer.stop()
