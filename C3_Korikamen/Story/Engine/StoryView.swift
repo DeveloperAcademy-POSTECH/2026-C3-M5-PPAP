@@ -95,10 +95,11 @@ struct StoryView: View {
                     .foregroundColor(.white)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
-                    .background(Color.black.opacity(0.3), in: Capsule())
+//                    .background(Color.black.opacity(0.3), in: Capsule())
+                    .glassEffect(.clear.tint(.white.opacity(0.3)), in: Capsule())  // 살짝 뿌옇게
             }
             .padding(.top, 70)
-            .padding(.trailing, 40)
+            .padding(.trailing, 50)
             
         }
         .onAppear { // id(player.index) 와 함께, 컷 뜰 때 막 걷기
