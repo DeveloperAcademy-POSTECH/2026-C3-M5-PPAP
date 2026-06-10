@@ -36,7 +36,8 @@ final class GameManager: ObservableObject {
     init() { machine.enter(MainState.self) }
 
     func recordTime(stage: Int, elapsed: Double) { stageTimes[stage] = elapsed }
-
+    
+    
     func advance() { // 전환 로직 추가
         //스테이지를 클리어하고 떠나는 순간, 걸린 시간 저장
         if case .stage(let n) = phase, let start = stageStartTime {
