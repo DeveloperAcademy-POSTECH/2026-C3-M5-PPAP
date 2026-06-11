@@ -24,7 +24,7 @@ struct EndingView: View {
     
     var body: some View {
         ZStack {
-            StoryView(player: player)
+            StoryView(player: player, showSkip: false) // 엔딩은 Skip 버튼 숨김
             
             if player.index == endingStory.count - 1  {//마지막 컷이면
                 ZStack {
