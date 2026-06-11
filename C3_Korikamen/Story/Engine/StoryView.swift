@@ -11,6 +11,7 @@ import SwiftUI
 struct StoryView: View {
     @StateObject var player: StoryPlayer //player의 index/beat가 바뀌면 화면 갱신되도록
     @State private var coverOpacity: Double = 0   // 전환막 투명도 서서히 걷혀 어두웠다가 화면이 드러날 때 사용
+    var showSkip: Bool = true // 기본값 true → 기존 호출은 그대로 동작
     var body: some View {
         let page = player.pages[player.index] //지금 그릴 컷
         
@@ -34,8 +35,8 @@ struct StoryView: View {
             //2. 연출 이미지들
             ForEach(page.overlays) { overlay in
                 OverlayLayer(overlay: overlay) //오버레이를 그리는 로직 추가
-                    // .resizable()
-                    // .scaledToFit()
+                // .resizable()
+                // .scaledToFit()
             }
             
             //3. 텍스트 패널
@@ -59,8 +60,8 @@ struct StoryView: View {
                         
                     }
                     .padding(.bottom, 40)
-                
-                   
+                    
+                    
                 }
             }
             
@@ -87,19 +88,21 @@ struct StoryView: View {
             player.tap() // 화면 아무데나 탭 하면 텍스트나 이미지 스킵(바로 나오도록)
         }
         .overlay(alignment: .topTrailing) {
-            Button {
-                player.skip()
-            } label : {
-                Text("Skip")
-                    .font(.system(size: 22, weight:.semibold))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-//                    .background(Color.black.opacity(0.3), in: Capsule())
-                    .glassEffect(.clear.tint(.white.opacity(0.3)), in: Capsule())  // 살짝 뿌옇게
+            if showSkip {
+                Button {
+                    player.skip()
+                } label : {
+                    Text("Skip")
+                        .font(.system(size: 22, weight:.semibold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                    //                    .background(Color.black.opacity(0.3), in: Capsule())
+                        .glassEffect(.clear.tint(.white.opacity(0.3)), in: Capsule())  // 살짝 뿌옇게
+                }
+                .padding(.top, 70)
+                .padding(.trailing, 50)
             }
-            .padding(.top, 70)
-            .padding(.trailing, 50)
             
         }
         .onAppear { // id(player.index) 와 함께, 컷 뜰 때 막 걷기
@@ -111,6 +114,6 @@ struct StoryView: View {
             }
         }
         .id(player.index) //컷 바뀌면 리마운트 다음 컷이 나오도록 -> 연출 리셋
-       
+        
     }
 }
